@@ -1,40 +1,17 @@
-# ⛅ Buscador de Clima Interactivo en Python
+# ⛅ Buscador de Clima Pro en Python (Terminal)
 
-Un script interactivo para la terminal que permite consultar el clima actual, la hora local y el pronóstico de los próximos 2 días para cualquier comuna o ciudad del mundo. 
+Un script interactivo y avanzado para la terminal de macOS/Linux que permite consultar el clima actual y el pronóstico de 2 días. Diseñado para ser **100% nativo**, sin dependencias externas (`pip`).
 
-Diseñado específicamente para funcionar de manera **100% nativa**, evitando problemas con `pip`, librerías externas o bloqueos de certificados en macOS.
-
-## ✨ Características Principales
-
-* **Bucle Interactivo:** El programa se mantiene abierto permitiendo múltiples consultas seguidas sin tener que volver a ejecutar el script.
-* **Pronóstico Extendido:** Muestra la temperatura actual y el pronóstico de temperaturas mínimas y máximas para los próximos 2 días.
-* **Anti-Errores de Mac (SSL):** Incluye un parche nativo que evita los comunes errores de "Connection Reset" o validación de certificados SSL al hacer peticiones web en macOS.
-* **Sin Claves ni Registros:** Utiliza la API pública de *Open-Meteo*, por lo que no necesitas registrarte ni configurar API Keys.
-* **Zonas Horarias Automáticas:** Calcula y muestra la hora exacta local dependiendo de la ciudad que busques (ej. si buscas "Tokio", mostrará la hora de Japón).
-
-## 🛠️ Requisitos
-
-* **Python 3.9 o superior** (Probado en Python 3.14).
-* Conexión a internet.
-* *No requiere ninguna instalación externa mediante `pip`.*
-
-Librerías nativas utilizadas: `urllib`, `json`, `ssl`, `datetime`, `zoneinfo`.
+## ✨ Novedades de esta versión
+* **Interfaz a todo Color:** Uso de códigos de escape ANSI para colorear textos y crear "etiquetas" de fondo dinámicas según la temperatura (Rojo=Calor, Azul=Frío, Verde=Templado).
+* **Animaciones Multihilo:** Implementación de `threading` para crear un "spinner" de carga estilo braille mientras se descargan los datos, evitando que la terminal se congele.
+* **Menú Interactivo Anti-Errores:** Si existen múltiples ciudades con el mismo nombre en el mundo, el script despliega un menú numerado para que el usuario elija la correcta.
+* **Datos Extendidos:** Ahora muestra Índice UV máximo, Humedad y horas exactas de Amanecer y Atardecer.
+* **Parche SSL para macOS:** Contexto de seguridad integrado para evitar bloqueos nativos de Mac al consultar APIs.
 
 ## 🚀 Cómo ejecutarlo
-
-1. Abre tu terminal.
-2. Navega hasta la carpeta donde guardaste el archivo `.py`.
-3. Ejecuta el siguiente comando:
-
-   ```bash
-   python tiempo_valpo.py
+```bash
+python el_tiempo.py
 
 
-📖 Uso
-Una vez iniciado, el programa te pedirá que ingreses el nombre de una ciudad o comuna:
-
-Plaintext
-🌎 Escribe la comuna o ciudad: Valparaíso
-El script devolverá un reporte detallado con la temperatura actual (con un margen de error estándar de ±2°C debido a los modelos matemáticos globales) y el estado del clima.
-
-Para cerrar el programa, simplemente escribe salir, quit, exit o cerrar cuando te pida una ciudad.
+PD: Estoy partiendo en la programaciòn

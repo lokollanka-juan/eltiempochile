@@ -6,6 +6,7 @@ import time
 import sys
 import threading
 import subprocess
+import webbrowser  # <-- NUEVO: Para controlar tu navegador
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -14,10 +15,10 @@ from zoneinfo import ZoneInfo
 # ==========================================
 CIUDAD_CASA = "chincolco" 
 
-# --- PALETA DE COLORES, FONDOS Y EFECTOS ANSI ---
+# --- PALETA DE COLORES Y EFECTOS ANSI ---
 RESET = "\033[0m"
 NEGRITA = "\033[1m"
-PARPADEO = "\033[5m"  # Efecto de alerta
+PARPADEO = "\033[5m"
 BLANCO = "\033[97m"
 ROJO = "\033[91m"
 VERDE = "\033[92m"
@@ -31,66 +32,18 @@ FONDO_AZUL = "\033[44m"
 animando = False
 
 # ==========================================
-# 🚀 FUNCIONES DE NIVEL DIOS
+# 🚀 FUNCIONES DE SISTEMA Y GRÁFICOS
 # ==========================================
 
 def hablar_mac(texto):
-    """Hace que la Mac lea el texto en voz alta en segundo plano (sin congelar el programa)"""
+    try: subprocess.Popen(["say", texto])
+    except: pass
+
+def notificar_mac(titulo, mensaje):
     try:
-        # Popen lo ejecuta de fondo. 'say' es el comando nativo de voz de Apple.
-        subprocess.Popen(["say", texto])
-    except:
-        pass
-
-def calcular_barra_sol(amanecer_iso, atardecer_iso, zona_horaria_str):
-    """Dibuja una barra de progreso calculando dónde está el sol en este momento exacto"""
-    try:
-        zh = ZoneInfo(zona_horaria_str)
-        ahora = datetime.now(zh)
-        
-        # Convertimos los textos de la API (ej: 2026-03-15T07:15) a objetos de tiempo reales
-        amanecer = datetime.fromisoformat(amanecer_iso).replace(tzinfo=zh)
-        atardecer = datetime.fromisoformat(atardecer_iso).replace(tzinfo=zh)
-        
-        hora_am = amanecer.strftime('%H:%M')
-        hora_pm = atardecer.strftime('%H:%M')
-
-        if ahora < amanecer:
-            return f"🌌 {hora_am} [--------------------] {hora_pm} (Esperando el alba)"
-        elif ahora > atardecer:
-            return f"🌃 {hora_am} [████████████████████] {hora_pm} (De noche)"
-
-        # Matemáticas: Qué porcentaje del día de luz ha pasado
-        total_seg_luz = (atardecer - amanecer).total_seconds()
-        seg_pasados = (ahora - amanecer).total_seconds()
-        porcentaje = seg_pasados / total_seg_luz
-
-        longitud_barra = 20
-        llenos = int(longitud_barra * porcentaje)
-        vacios = max(0, longitud_barra - llenos - 1)
-
-        # Dibujar la barra
-        barra = "█" * llenos + "☀️" + "-" * vacios
-        return f"🌅 {hora_am} [{AMARILLO}{barra}{RESET}] {hora_pm} 🌇"
-    except Exception as e:
-        return f"🌅 {amanecer_iso.split('T')[1]} / 🌇 {atardecer_iso.split('T')[1]}"
-
-def verificar_alertas(temp, viento, uv):
-    """Dispara advertencias si el clima es peligroso"""
-    alertas = []
-    if temp >= 32: alertas.append("🔥 CALOR EXTREMO (≥32°C). ¡Evita el sol e hidrátate!")
-    elif temp <= 0: alertas.append("❄️ FRÍO EXTREMO (≤0°C). ¡Abrígate muy bien!")
-    if viento >= 40: alertas.append("🌪️ VIENTO FUERTE (≥40km/h). ¡Precaución afuera!")
-    if uv >= 8: alertas.append("☢️ RADIACIÓN UV PELIGROSA (≥8). ¡Usa bloqueador solar sí o sí!")
-    
-    if alertas:
-        print(f"\n{PARPADEO}{FONDO_ROJO}{BLANCO}{NEGRITA} ⚠️ ALERTAS METEOROLÓGICAS ACTIVAS ⚠️ {RESET}")
-        for alerta in alertas:
-            print(f"{ROJO}{NEGRITA}  ▶ {alerta}{RESET}")
-
-# ==========================================
-# 🛠️ FUNCIONES CLÁSICAS
-# ==========================================
+        comando = f'display notification "{mensaje}" with title "{titulo}"'
+        subprocess.run(["osascript", "-e", comando], check=False)
+    except: pass
 
 def animacion_carga(mensaje):
     spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -101,26 +54,6 @@ def animacion_carga(mensaje):
         time.sleep(0.1)
         i += 1
     sys.stdout.write('\r' + ' ' * (len(mensaje) + 5) + '\r')
-
-def notificar_mac(ciudad, temp, estado):
-    try:
-        mensaje = f"{temp}°C y {estado}"
-        comando = f'display notification "{mensaje}" with title "⛅ Clima en {ciudad}"'
-        subprocess.run(["osascript", "-e", comando], check=False)
-    except: pass
-
-def obtener_ascii_clima(codigo):
-    if codigo == 0:
-        return f"{AMARILLO}      \\  /    \n    _ /\"\".\\ _ \n      \\__/    \n      /  \\    {RESET}"
-    elif codigo in [1, 2, 3]:
-        return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__){RESET}"
-    elif codigo in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
-        return f"{CIAN}       .--.   \n    .-(    ). \n   (___.__)__)\n    / / / / / {RESET}"
-    elif codigo in [71, 73, 75, 85, 86]:
-        return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__)\n    * * * *{RESET}"
-    elif codigo in [95, 96, 99]:
-        return f"{AMARILLO}       .--.   \n    .-(    ). \n   (___.__)__)\n      ⚡  ⚡   {RESET}"
-    else: return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__){RESET}"
 
 def colorear_temp(temp):
     try:
@@ -139,82 +72,168 @@ def obtener_estado_clima(codigo):
     elif codigo in [95, 96, 99]: return "⛈️ Tormenta"
     else: return "☁️ Variable"
 
+def obtener_ascii_clima(codigo):
+    if codigo == 0:
+        return f"{AMARILLO}      \\  /    \n    _ /\"\".\\ _ \n      \\__/    \n      /  \\    {RESET}"
+    elif codigo in [1, 2, 3]:
+        return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__){RESET}"
+    elif codigo in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
+        return f"{CIAN}       .--.   \n    .-(    ). \n   (___.__)__)\n    / / / / / {RESET}"
+    elif codigo in [71, 73, 75, 85, 86]:
+        return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__)\n    * * * *{RESET}"
+    elif codigo in [95, 96, 99]:
+        return f"{AMARILLO}       .--.   \n    .-(    ). \n   (___.__)__)\n      ⚡  ⚡   {RESET}"
+    else: return f"{BLANCO}       .--.   \n    .-(    ). \n   (___.__)__){RESET}"
+
+def verificar_alertas(temp, viento, uv):
+    alertas = []
+    if temp >= 32: alertas.append("🔥 CALOR EXTREMO (≥32°C). ¡Evita el sol e hidrátate!")
+    elif temp <= 0: alertas.append("❄️ FRÍO EXTREMO (≤0°C). ¡Abrígate muy bien!")
+    if viento >= 40: alertas.append("🌪️ VIENTO FUERTE (≥40km/h). ¡Precaución afuera!")
+    if uv >= 8: alertas.append("☢️ RADIACIÓN UV PELIGROSA (≥8). ¡Usa bloqueador solar sí o sí!")
+    
+    if alertas:
+        print(f"\n{PARPADEO}{FONDO_ROJO}{BLANCO}{NEGRITA} ⚠️ ALERTAS METEOROLÓGICAS ACTIVAS ⚠️ {RESET}")
+        for alerta in alertas:
+            print(f"{ROJO}{NEGRITA}  ▶ {alerta}{RESET}")
+
+def calcular_barra_sol(amanecer_iso, atardecer_iso, zona_horaria_str):
+    try:
+        zh = ZoneInfo(zona_horaria_str)
+        ahora = datetime.now(zh)
+        amanecer = datetime.fromisoformat(amanecer_iso).replace(tzinfo=zh)
+        atardecer = datetime.fromisoformat(atardecer_iso).replace(tzinfo=zh)
+        
+        hora_am = amanecer.strftime('%H:%M')
+        hora_pm = atardecer.strftime('%H:%M')
+
+        if ahora < amanecer: return f"🌌 {hora_am} [--------------------] {hora_pm} (Esperando el alba)"
+        elif ahora > atardecer: return f"🌃 {hora_am} [████████████████████] {hora_pm} (De noche)"
+
+        porcentaje = (ahora - amanecer).total_seconds() / (atardecer - amanecer).total_seconds()
+        llenos = int(20 * porcentaje)
+        vacios = max(0, 20 - llenos - 1)
+        return f"🌅 {hora_am} [{AMARILLO}{'█' * llenos}☀️{'-' * vacios}{RESET}] {hora_pm} 🌇"
+    except: return f"🌅 {amanecer_iso.split('T')[1]} / 🌇 {atardecer_iso.split('T')[1]}"
+
 # ==========================================
-# ⚙️ MOTOR PRINCIPAL
+# ⚔️ MODO BATALLA (MOTOR DOBLE)
+# ==========================================
+
+def descargar_datos_silencioso(busqueda, diccionario_resultados, clave):
+    contexto_ssl = ssl._create_unverified_context()
+    try:
+        ciudad_cod = urllib.parse.quote(busqueda)
+        url_geo = f"https://geocoding-api.open-meteo.com/v1/search?name={ciudad_cod}&count=1&language=es&format=json"
+        res_geo = json.loads(urllib.request.urlopen(url_geo, context=contexto_ssl).read().decode('utf-8'))
+        
+        if not res_geo.get("results"):
+            diccionario_resultados[clave] = {"error": f"No se encontró {busqueda}"}
+            return
+            
+        ubi = res_geo["results"][0]
+        url_clima = f"https://api.open-meteo.com/v1/forecast?latitude={ubi['latitude']}&longitude={ubi['longitude']}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto"
+        res_clima = json.loads(urllib.request.urlopen(url_clima, context=contexto_ssl).read().decode('utf-8'))
+        
+        clima = res_clima['current']
+        diccionario_resultados[clave] = {
+            "nombre": ubi["name"], "pais": ubi.get("country", ""), "temp": clima['temperature_2m'],
+            "humedad": clima['relative_humidity_2m'], "viento": clima['wind_speed_10m'],
+            "estado": obtener_estado_clima(clima['weather_code'])
+        }
+    except Exception as e: diccionario_resultados[clave] = {"error": str(e)}
+
+def batalla_ciudades(ciudad1, ciudad2):
+    global animando
+    print(f"\n{PARPADEO}{ROJO}{NEGRITA}⚔️  INICIANDO BATALLA METEOROLÓGICA ⚔️{RESET}")
+    hablar_mac(f"Batalla iniciada. {ciudad1} versus {ciudad2}")
+    
+    animando = True
+    hilo_anim = threading.Thread(target=animacion_carga, args=("Conectando satélites simultáneos...",))
+    hilo_anim.start()
+    
+    resultados = {}
+    hilo1 = threading.Thread(target=descargar_datos_silencioso, args=(ciudad1, resultados, 'c1'))
+    hilo2 = threading.Thread(target=descargar_datos_silencioso, args=(ciudad2, resultados, 'c2'))
+    hilo1.start()
+    hilo2.start()
+    hilo1.join()
+    hilo2.join()
+    
+    animando = False
+    hilo_anim.join()
+    
+    d1, d2 = resultados.get('c1', {}), resultados.get('c2', {})
+    if "error" in d1 or "error" in d2:
+        print(f"{ROJO}❌ Error: Uno de los lugares no existe.{RESET}")
+        return
+
+    nom1, nom2 = f"{d1['nombre']} ({d1['pais']})"[:25], f"{d2['nombre']} ({d2['pais']})"[:25]
+    print(f"\n{CIAN}" + "="*60 + f"{RESET}")
+    print(f"{AMARILLO}{NEGRITA}{nom1:<28} 🆚 {nom2:>28}{RESET}")
+    print(f"{CIAN}" + "-"*60 + f"{RESET}")
+    
+    t1, t2 = d1['temp'], d2['temp']
+    print(f"🌡️ {colorear_temp(t1)} {'🔥' if t1>t2 else '':<13} | 🌡️ {colorear_temp(t2)} {'🔥' if t2>t1 else ''}")
+    h1, h2 = d1['humedad'], d2['humedad']
+    print(f"💧 Humedad: {h1}% {'💧' if h1>h2 else '':<11} | 💧 Humedad: {h2}% {'💧' if h2>h1 else ''}")
+    v1, v2 = d1['viento'], d2['viento']
+    print(f"💨 Viento: {v1} km/h {'🌪️' if v1>v2 else '':<7} | 💨 Viento: {v2} km/h {'🌪️' if v2>v1 else ''}")
+    print(f"🌤️ {d1['estado']:<25} | 🌤️ {d2['estado']}")
+    print(f"{CIAN}" + "="*60 + f"{RESET}\n")
+    notificar_mac("Batalla Finalizada ⚔️", f"{d1['nombre']} ({t1}°C) vs {d2['nombre']} ({t2}°C)")
+
+# ==========================================
+# ⚙️ MODO NORMAL (CON WEB Y TODO EL ARTE)
 # ==========================================
 
 def procesar_ciudad(entrada, modo_hacker=False):
     global animando
     contexto_ssl = ssl._create_unverified_context()
-    
     pais_filtro = None
     if "," in entrada:
         partes = entrada.split(",")
-        ciudad_busqueda = partes[0].strip()
-        pais_filtro = partes[1].strip().lower()
-    else:
-        ciudad_busqueda = entrada
+        ciudad_busqueda, pais_filtro = partes[0].strip(), partes[1].strip().lower()
+    else: ciudad_busqueda = entrada
         
     animando = True
     hilo_animacion = threading.Thread(target=animacion_carga, args=(f"Buscando '{ciudad_busqueda}'...",))
     hilo_animacion.start()
     
-    ciudad_codificada = urllib.parse.quote(ciudad_busqueda)
-    url_geo = f"https://geocoding-api.open-meteo.com/v1/search?name={ciudad_codificada}&count=20&language=es&format=json"
-    
     try:
-        respuesta_geo = urllib.request.urlopen(url_geo, context=contexto_ssl)
-        datos_geo = json.loads(respuesta_geo.read().decode('utf-8'))
+        ciudad_cod = urllib.parse.quote(ciudad_busqueda)
+        url_geo = f"https://geocoding-api.open-meteo.com/v1/search?name={ciudad_cod}&count=20&language=es&format=json"
+        res_geo = json.loads(urllib.request.urlopen(url_geo, context=contexto_ssl).read().decode('utf-8'))
         animando = False
         hilo_animacion.join()
         
-        resultados_crudos = datos_geo.get("results", [])
+        resultados_crudos = res_geo.get("results", [])
         if not resultados_crudos:
-            print(f"{ROJO}❌ No encontré '{ciudad_busqueda}'.{RESET}")
-            return
+            print(f"{ROJO}❌ No encontré '{ciudad_busqueda}'.{RESET}"); return
             
-        if pais_filtro:
-            resultados = [res for res in resultados_crudos if pais_filtro in res.get("country", "").lower()]
-        else:
-            resultados = resultados_crudos
-            
+        resultados = [r for r in resultados_crudos if pais_filtro in r.get("country", "").lower()] if pais_filtro else resultados_crudos
         if not resultados:
-            print(f"{ROJO}❌ Encontré '{ciudad_busqueda}', pero no en '{pais_filtro}'.{RESET}")
-            return
+            print(f"{ROJO}❌ No encontré '{ciudad_busqueda}' en '{pais_filtro}'.{RESET}"); return
             
         ubicacion = resultados[0] if (len(resultados) == 1 or modo_hacker) else None
-        
         if not ubicacion:
             print(f"\n{AMARILLO}🔎 Encontré {len(resultados)} opciones. Elige la correcta:{RESET}")
             for i, res in enumerate(resultados):
-                nombre = res.get("name", "")
-                pais = res.get("country", "?")
-                region = res.get("admin1", "-")
-                print(f"   {CIAN}[{i+1}]{RESET} {NEGRITA}{nombre}{RESET}, {region} ({pais})")
-            
+                print(f"   {CIAN}[{i+1}]{RESET} {NEGRITA}{res.get('name','')}{RESET}, {res.get('admin1','-')} ({res.get('country','?')})")
             while True:
                 seleccion = input(f"\n{VERDE}👉 Escribe el número (o Enter para cancelar): {RESET}").strip()
                 if not seleccion: return
                 if seleccion.isdigit() and 1 <= int(seleccion) <= len(resultados):
-                    ubicacion = resultados[int(seleccion)-1]
-                    break
+                    ubicacion = resultados[int(seleccion)-1]; break
                 print(f"{ROJO}❌ Inválido.{RESET}")
                 
         lat, lon = ubicacion["latitude"], ubicacion["longitude"]
-        nombre_oficial = ubicacion["name"]
-        pais_oficial = ubicacion.get("country", "?")
-        region_oficial = ubicacion.get("admin1", "")
-        zona_horaria_str = ubicacion.get("timezone", "America/Santiago")
-        
+        nom, pais, reg = ubicacion["name"], ubicacion.get("country", "?"), ubicacion.get("admin1", "")
+        zh_str = ubicacion.get("timezone", "America/Santiago")
     except Exception as e:
-        animando = False
-        hilo_animacion.join()
-        print(f"{ROJO}❌ Error al buscar: {e}{RESET}")
-        return
+        animando = False; hilo_animacion.join(); print(f"{ROJO}❌ Error al buscar: {e}{RESET}"); return
 
-    try:
-        zona_horaria = ZoneInfo(zona_horaria_str)
-        hora_formateada = datetime.now(zona_horaria).strftime("%d/%m/%Y %H:%M:%S")
+    try: hora_formateada = datetime.now(ZoneInfo(zh_str)).strftime("%d/%m/%Y %H:%M:%S")
     except: hora_formateada = "--"
 
     animando = True
@@ -224,79 +243,80 @@ def procesar_ciudad(entrada, modo_hacker=False):
     url_clima = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset&timezone=auto&forecast_days=3"
     
     try:
-        respuesta_clima = urllib.request.urlopen(url_clima, context=contexto_ssl)
-        datos_clima = json.loads(respuesta_clima.read().decode('utf-8'))
+        res_clima = json.loads(urllib.request.urlopen(url_clima, context=contexto_ssl).read().decode('utf-8'))
         animando = False
         hilo_clima.join()
         
-        clima_actual = datos_clima['current']
-        pronostico = datos_clima['daily']
-        estado_texto = obtener_estado_clima(clima_actual['weather_code'])
-        temp_actual = clima_actual['temperature_2m']
-        viento_actual = clima_actual['wind_speed_10m']
-        uv_hoy = pronostico['uv_index_max'][0]
+        c = res_clima['current']
+        p = res_clima['daily']
+        est_txt = obtener_estado_clima(c['weather_code'])
+        temp, viento, uv = c['temperature_2m'], c['wind_speed_10m'], p['uv_index_max'][0]
         
-        # --- LANZAR LA MAGIA NATIVA DE MAC ---
-        notificar_mac(nombre_oficial, temp_actual, estado_texto)
-        # 🗣️ LA MAC HABLA AQUÍ (Sube el volumen)
-        mensaje_voz = f"El clima en {nombre_oficial} es de {temp_actual} grados, y está {estado_texto.split(' ')[1]}."
-        hablar_mac(mensaje_voz)
+        notificar_mac("Clima Listo", f"{nom}: {temp}°C y {est_txt.split(' ')[1]}")
+        hablar_mac(f"El clima en {nom} es de {temp} grados.")
         
         print("\n" + f"{CIAN}" + "="*50 + f"{RESET}")
-        lugar = f"{nombre_oficial}, {region_oficial}" if region_oficial else f"{nombre_oficial}"
-        print(f"📍 {NEGRITA}REPORTE DE: {lugar} ({pais_oficial}){RESET}")
+        print(f"📍 {NEGRITA}REPORTE DE: {nom}, {reg} ({pais}){RESET}")
         print(f"🕒 Hora local: {AMARILLO}{hora_formateada}{RESET}")
         print(f"{CIAN}" + "="*50 + f"{RESET}\n")
         
-        # Arte y alertas
-        print(obtener_ascii_clima(clima_actual['weather_code']))
-        verificar_alertas(temp_actual, viento_actual, uv_hoy)
+        print(obtener_ascii_clima(c['weather_code']))
+        verificar_alertas(temp, viento, uv)
         print("")
         
         print(f"{VERDE}{NEGRITA}🟢 CLIMA ACTUAL:{RESET}")
-        print(f"   🌡️ Temperatura: {colorear_temp(temp_actual)}")
-        print(f"   💧 Humedad:     {CIAN}{clima_actual['relative_humidity_2m']}%{RESET}")
-        print(f"   🌤️ Estado:      {estado_texto}")
-        print(f"   💨 Viento:      {CIAN}{viento_actual} km/h{RESET}")
-        print(f"   ☀️ Índice UV:   {AMARILLO}{uv_hoy} (Máx hoy){RESET}")
+        print(f"   🌡️ Temperatura: {colorear_temp(temp)}")
+        print(f"   💧 Humedad:     {CIAN}{c['relative_humidity_2m']}%{RESET}")
+        print(f"   🌤️ Estado:      {est_txt}")
+        print(f"   💨 Viento:      {CIAN}{viento} km/h{RESET}")
+        print(f"   ☀️ Índice UV:   {AMARILLO}{uv} (Máx hoy){RESET}")
         
-        # ⏳ LA MEGA BARRA DEL SOL
-        barra_sol = calcular_barra_sol(pronostico['sunrise'][0], pronostico['sunset'][0], zona_horaria_str)
-        print(f"\n   {barra_sol}\n")
+        print(f"\n   {calcular_barra_sol(p['sunrise'][0], p['sunset'][0], zh_str)}\n")
         
         print(f"{CIAN}" + "-" * 50 + f"{RESET}")
         print(f"{VERDE}{NEGRITA}📅 PRONÓSTICO 2 DÍAS:{RESET}")
-        print(f"   ▶ Mañana: Mín {colorear_temp(pronostico['temperature_2m_min'][1])} | Máx {colorear_temp(pronostico['temperature_2m_max'][1])} | {obtener_estado_clima(pronostico['weather_code'][1])}")
-        print(f"   ▶ Pasado: Mín {colorear_temp(pronostico['temperature_2m_min'][2])} | Máx {colorear_temp(pronostico['temperature_2m_max'][2])} | {obtener_estado_clima(pronostico['weather_code'][2])}")
+        print(f"   ▶ Mañana: Mín {colorear_temp(p['temperature_2m_min'][1])} | Máx {colorear_temp(p['temperature_2m_max'][1])} | {obtener_estado_clima(p['weather_code'][1])}")
+        print(f"   ▶ Pasado: Mín {colorear_temp(p['temperature_2m_min'][2])} | Máx {colorear_temp(p['temperature_2m_max'][2])} | {obtener_estado_clima(p['weather_code'][2])}")
         print(f"{CIAN}" + "="*50 + f"{RESET}")
         
+        # --- 🌐 MAGIA DE NAVEGADOR WEB ---
+        print(f"\n{AMARILLO}🌐 Abriendo radar interactivo en tu navegador...{RESET}")
+        # Abre Windy.com centrado exactamente en la ciudad buscada, con zoom nivel 10
+        webbrowser.open(f"https://www.windy.com/?{lat},{lon},10")
+        
     except Exception as e:
-        animando = False
-        hilo_clima.join()
-        print(f"{ROJO}❌ Error al descargar el clima: {e}{RESET}")
+        animando = False; hilo_clima.join(); print(f"{ROJO}❌ Error al descargar el clima: {e}{RESET}")
 
 def main():
     if len(sys.argv) > 1:
         busqueda = " ".join(sys.argv[1:])
-        procesar_ciudad(busqueda, modo_hacker=True)
+        if " vs " in busqueda.lower():
+            partes = busqueda.lower().split(" vs ")
+            batalla_ciudades(partes[0].strip(), partes[1].strip())
+        else:
+            procesar_ciudad(busqueda, modo_hacker=True)
         return
         
     print(f"{CIAN}{NEGRITA}" + "="*60 + f"{RESET}")
-    print(f"{CIAN}{NEGRITA}⛅ ASISTENTE DE CLIMA IA - NIVEL DIOS{RESET}")
+    print(f"{CIAN}{NEGRITA}⛅ ASISTENTE DE CLIMA V5.0 - RADAR WEB{RESET}")
+    print(f"{AMARILLO}💡 Truco: Escribe 'Madrid vs Londres' para compararlos.{RESET}")
     print(f"{CIAN}{NEGRITA}" + "="*60 + f"{RESET}")
     
-    print(f"\n{AMARILLO}🏠 Hablando con satélites para {CIUDAD_CASA}...{RESET}")
-    procesar_ciudad(CIUDAD_CASA, modo_hacker=False)
+    procesar_ciudad(CIUDAD_CASA)
     
     while True:
-        print("\n" + f"{CIAN}" + "-"*60 + f"{RESET}")
-        entrada = input(f"{VERDE}🌎 Escribe otra ciudad (o presiona Enter para salir): {RESET}").strip()
+        print(f"{CIAN}" + "-"*60 + f"{RESET}")
+        entrada = input(f"{VERDE}🌎 Escribe una ciudad o un VS (ej: Tokio vs Miami): {RESET}").strip()
         
-        if not entrada or entrada.lower() in ['salir', 'quit', 'exit', 'cerrar']:
+        if not entrada or entrada.lower() in ['salir', 'quit', 'exit']:
             print(f"{AMARILLO}¡Nos vemos! 👋{RESET}")
             break
             
-        procesar_ciudad(entrada, modo_hacker=False)
+        if " vs " in entrada.lower():
+            partes = entrada.lower().split(" vs ")
+            batalla_ciudades(partes[0].strip(), partes[1].strip())
+        else:
+            procesar_ciudad(entrada)
 
 if __name__ == "__main__":
     main()
